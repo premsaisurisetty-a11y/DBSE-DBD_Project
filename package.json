@@ -1,0 +1,14 @@
+{
+  "name": "dairy-merchant-system",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "node -e \"const { spawn } = require('child_process'); spawn('node', ['server.js'], { cwd: './backend', stdio: 'inherit' }); spawn('node', ['./node_modules/vite/bin/vite.js'], { cwd: './frontend', stdio: 'inherit' });\"",
+    "dev:backend": "node backend/server.js",
+    "dev:frontend": "node frontend/node_modules/vite/bin/vite.js frontend",
+    "install-all": "npm --prefix backend install && npm --prefix frontend install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
