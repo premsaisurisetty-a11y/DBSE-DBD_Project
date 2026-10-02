@@ -19,10 +19,13 @@ async function getAllInvoices(req, res) {
 
 async function getInvoiceById(req, res) {
   try {
-    const [rows] = await pool.query(
-      `SELECT i.*, m.shop_name FROM invoices i JOIN merchants m ON m.merchant_id = i.merchant_id WHERE i.invoice_id = ?`,
-      [req.params.id]
-    );
+    let query = `SELECT i.*, m.shop_name FROM invoices i JOIN merchants m ON m.merchant_id = i.merchant_id WHERE i.invoice_id = ?`;
+    const params = [req.params.id];
+    if (req.user.role === 'MERCHANT') {
+      query += ' AND i.merchant_id = (SELECT merchant_id FROM merchants WHERE user_id = ?)';
+      params.push(req.user.user_id);
+    }
+    const [rows] = await pool.query(query, params);
     if (!rows.length) return res.status(404).json({ message: 'Invoice not found' });
     const [sale] = await pool.query('SELECT * FROM sales WHERE invoice_id = ?', [req.params.id]);
     res.json({ ...rows[0], sale: sale[0] || null });

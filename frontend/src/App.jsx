@@ -10,7 +10,6 @@ import AdminSales from './pages/admin/Sales';
 import AdminPayments from './pages/admin/Payments';
 import AdminInventory from './pages/admin/Inventory';
 import Discrepancies from './pages/admin/Discrepancies';
-import AuditLogs from './pages/admin/AuditLogs';
 
 import MerchantDashboard from './pages/merchant/Dashboard';
 import MerchantProducts from './pages/merchant/Products';
@@ -40,7 +39,6 @@ function AppRoutes() {
       <Route path="/admin/payments" element={<ProtectedRoute role="ADMIN"><AdminPayments /></ProtectedRoute>} />
       <Route path="/admin/inventory" element={<ProtectedRoute role="ADMIN"><AdminInventory /></ProtectedRoute>} />
       <Route path="/admin/discrepancies" element={<ProtectedRoute role="ADMIN"><Discrepancies /></ProtectedRoute>} />
-      <Route path="/admin/audit-logs" element={<ProtectedRoute role="ADMIN"><AuditLogs /></ProtectedRoute>} />
 
       <Route path="/merchant/dashboard" element={<ProtectedRoute role="MERCHANT"><MerchantDashboard /></ProtectedRoute>} />
       <Route path="/merchant/products" element={<ProtectedRoute role="MERCHANT"><MerchantProducts /></ProtectedRoute>} />

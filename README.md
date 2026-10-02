@@ -16,7 +16,6 @@ users (1)───(1) merchants (1)───(*) stock_entries
   │                 ├───(*) inventory ───(1) products ───(*) product_quality
   │                 ├───(*) invoices ───(1) sales ───(*) sale_items ───(1) products
   │                 └───(*) sales ───(1) payments
-  └───(*) audit_logs
 ```
 
 - `users` holds login + role (ADMIN/MERCHANT); `merchants` extends a MERCHANT user with shop info.
@@ -25,7 +24,6 @@ users (1)───(1) merchants (1)───(*) stock_entries
 - `sales` → `sale_items` (one sale, many products) → each sale has one `invoice` and one `payment`.
 - Revenue is **not stored** — it's computed via SQL from `sales`/`payments` (see views), per
   normalization guidance in the brief.
-- `audit_logs` records INSERT/UPDATE/DELETE/LOGIN actions for traceability.
 
 Full DDL, constraints, indexes, 3 discrepancy-detection **views**, and 14 demonstration
 queries (joins, GROUP BY/HAVING, subquery, window function `RANK()`) are in
@@ -47,8 +45,8 @@ queries (joins, GROUP BY/HAVING, subquery, window function `RANK()`) are in
 mysql -u root -p < database/schema.sql
 ```
 
-This creates `dairy_merchant_db` with all 11 tables, 3 views, indexes, and demo data
-(1 admin, 3 merchants, 5 products, stock/sales/payments/invoices/audit history).
+This creates `dairy_merchant_db` with all 10 tables, 3 views, indexes, and demo data
+(1 admin, 3 merchants, 5 products, stock/sales/payments/invoices).
 
 Demo logins (password for all: **password123**):
 | Role | Email |
@@ -84,10 +82,10 @@ Open the app, log in as admin or a merchant, and you'll land on the role-appropr
 
 - Login (JWT, bcrypt password hashing, role-based redirect)
 - Admin: Dashboard, Merchants (activate/deactivate), Products (CRUD), Sales (view all),
-  Payments (view all), Inventory (view all), **Discrepancies (fraud monitoring)**, Audit Logs
+  Payments (view all), Inventory (view all), **Discrepancies (fraud monitoring)**
 - Merchant: Dashboard, Products (view), Record Stock, Inventory (own), **Record Sale**
   (multi-item, wrapped in a MySQL transaction: validates stock → creates sale → sale_items →
-  reduces inventory → payment → invoice → audit log → COMMIT, with ROLLBACK on any failure),
+  reduces inventory → payment → invoice → COMMIT, with ROLLBACK on any failure),
   Payments (own)
 - Invoices and product-quality endpoints exist on the backend (`/api/invoices`,
   `/api/products/:id/quality`) — wire up dedicated pages for Phase 3 if the review needs them

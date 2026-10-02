@@ -10,7 +10,6 @@ const salesRoutes = require('./routes/salesRoutes');
 const paymentRoutes = require('./routes/paymentRoutes');
 const invoiceRoutes = require('./routes/invoiceRoutes');
 const discrepancyRoutes = require('./routes/discrepancyRoutes');
-const auditRoutes = require('./routes/auditRoutes');
 
 const app = express();
 
@@ -27,7 +26,6 @@ app.use('/api/sales', salesRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/discrepancies', discrepancyRoutes);
-app.use('/api/audit-logs', auditRoutes);
 
 // Fallback 404
 app.use((req, res) => res.status(404).json({ message: 'Route not found' }));

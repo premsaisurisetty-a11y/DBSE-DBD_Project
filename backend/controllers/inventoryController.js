@@ -25,15 +25,18 @@ async function getInventory(req, res) {
 async function getLowStock(req, res) {
   const threshold = Number(req.query.threshold) || 20;
   try {
-    const [rows] = await pool.query(
-      `SELECT m.shop_name, p.product_name, i.quantity_available
-       FROM inventory i
-       JOIN merchants m ON m.merchant_id = i.merchant_id
-       JOIN products p ON p.product_id = i.product_id
-       WHERE i.quantity_available < ?
-       ORDER BY i.quantity_available ASC`,
-      [threshold]
-    );
+    let query = `SELECT m.shop_name, p.product_name, i.quantity_available
+                 FROM inventory i
+                 JOIN merchants m ON m.merchant_id = i.merchant_id
+                 JOIN products p ON p.product_id = i.product_id
+                 WHERE i.quantity_available < ?`;
+    const params = [threshold];
+    if (req.user.role === 'MERCHANT') {
+      query += ' AND i.merchant_id = (SELECT merchant_id FROM merchants WHERE user_id = ?)';
+      params.push(req.user.user_id);
+    }
+    query += ' ORDER BY i.quantity_available ASC';
+    const [rows] = await pool.query(query, params);
     res.json(rows);
   } catch (err) {
     console.error(err);
@@ -52,9 +55,17 @@ async function addStock(req, res) {
   try {
     await conn.beginTransaction();
 
-    const [mRows] = await conn.query('SELECT merchant_id FROM merchants WHERE user_id = ?', [req.user.user_id]);
-    if (!mRows.length) throw new Error('Merchant profile not found for this user');
-    const merchant_id = (req.user.role === 'ADMIN' || req.user.role === 'OWNER') && req.body.merchant_id ? req.body.merchant_id : mRows[0].merchant_id;
+    let merchant_id;
+    if (req.user.role === 'ADMIN' || req.user.role === 'OWNER') {
+      if (!req.body.merchant_id) {
+        return res.status(400).json({ message: 'merchant_id is required for Admin stock entry' });
+      }
+      merchant_id = req.body.merchant_id;
+    } else {
+      const [mRows] = await conn.query('SELECT merchant_id FROM merchants WHERE user_id = ?', [req.user.user_id]);
+      if (!mRows.length) throw new Error('Merchant profile not found for this user');
+      merchant_id = mRows[0].merchant_id;
+    }
 
     await conn.query(
       'INSERT INTO stock_entries (merchant_id, product_id, quantity, cost_per_unit, entry_date) VALUES (?,?,?,?,?)',
@@ -66,11 +77,6 @@ async function addStock(req, res) {
        VALUES (?,?,?)
        ON DUPLICATE KEY UPDATE quantity_available = quantity_available + VALUES(quantity_available)`,
       [merchant_id, product_id, quantity]
-    );
-
-    await conn.query(
-      'INSERT INTO audit_logs (user_id, action, table_name, record_id, old_value, new_value) VALUES (?,?,?,?,?,?)',
-      [req.user.user_id, 'INSERT', 'stock_entries', product_id, null, JSON.stringify(req.body)]
     );
 
     await conn.commit();

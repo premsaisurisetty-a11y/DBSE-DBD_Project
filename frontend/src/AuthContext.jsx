@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import api from './services/api';
 
 const AuthContext = createContext(null);
 
@@ -7,6 +8,24 @@ export function AuthProvider({ children }) {
     const stored = localStorage.getItem('user');
     return stored ? JSON.parse(stored) : null;
   });
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      api.get('/auth/me')
+        .then((res) => {
+          if (res.data?.user) {
+            localStorage.setItem('user', JSON.stringify(res.data.user));
+            setUser(res.data.user);
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setUser(null);
+        });
+    }
+  }, []);
 
   function login(token, userData) {
     localStorage.setItem('token', token);

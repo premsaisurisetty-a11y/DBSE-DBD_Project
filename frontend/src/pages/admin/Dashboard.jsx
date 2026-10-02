@@ -126,7 +126,6 @@ export default function AdminDashboard() {
               <Link to="/admin/products" className="btn-secondary">📦 Catalog & Pricing</Link>
               <Link to="/admin/sales" className="btn-secondary">🛒 Review All Sales</Link>
               <Link to="/admin/discrepancies" className="btn-secondary">⚠️ Fraud & Anomaly Center</Link>
-              <Link to="/admin/audit-logs" className="btn-secondary">📜 Audit Trail</Link>
             </div>
           </div>
         </>

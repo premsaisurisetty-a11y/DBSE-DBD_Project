@@ -56,11 +56,6 @@ async function login(req, res) {
       { expiresIn: process.env.JWT_EXPIRES_IN || '8h' }
     );
 
-    await pool.query(
-      'INSERT INTO audit_logs (user_id, action, table_name, record_id, old_value, new_value) VALUES (?,?,?,?,?,?)',
-      [user.user_id, 'LOGIN', 'users', user.user_id, null, JSON.stringify({ email: user.email, merchant_code: user.merchant_code })]
-    );
-
     res.json({
       token,
       user: {
@@ -80,4 +75,38 @@ async function login(req, res) {
   }
 }
 
-module.exports = { login };
+async function getMe(req, res) {
+  try {
+    const [rows] = await pool.query(
+      `SELECT u.user_id, u.name, u.email, u.role, u.status,
+              m.merchant_id, m.merchant_code, m.shop_name, m.shift
+       FROM users u
+       LEFT JOIN merchants m ON m.user_id = u.user_id
+       WHERE u.user_id = ?`,
+      [req.user.user_id]
+    );
+
+    if (rows.length === 0 || rows[0].status !== 'ACTIVE') {
+      return res.status(401).json({ message: 'User account not active or found' });
+    }
+
+    const user = rows[0];
+    res.json({
+      user: {
+        user_id: user.user_id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        merchant_id: user.merchant_id,
+        merchant_code: user.merchant_code,
+        shop_name: user.shop_name,
+        shift: user.shift
+      }
+    });
+  } catch (err) {
+    console.error('getMe error:', err);
+    res.status(500).json({ message: 'Failed to authenticate user session' });
+  }
+}
+
+module.exports = { login, getMe };

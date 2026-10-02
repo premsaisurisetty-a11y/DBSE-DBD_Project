@@ -9,7 +9,6 @@ import {
   PaymentsIcon,
   InventoryIcon,
   DiscrepanciesIcon,
-  AuditIcon,
   StockIcon,
   LogOutIcon,
   MilkDropLogo
@@ -22,8 +21,7 @@ const ADMIN_LINKS = [
   { to: '/admin/sales', label: 'Sales Records', icon: SalesIcon },
   { to: '/admin/payments', label: 'Payment Ledger', icon: PaymentsIcon },
   { to: '/admin/inventory', label: 'Global Inventory', icon: InventoryIcon },
-  { to: '/admin/discrepancies', label: 'Discrepancies / Fraud', icon: DiscrepanciesIcon },
-  { to: '/admin/audit-logs', label: 'Audit Trail', icon: AuditIcon }
+  { to: '/admin/discrepancies', label: 'Discrepancies / Fraud', icon: DiscrepanciesIcon }
 ];
 
 const MERCHANT_LINKS = [

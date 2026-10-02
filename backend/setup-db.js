@@ -16,7 +16,8 @@ function prompt(question) {
 
 async function setupDatabase() {
   // Try different password combinations
-  const passwords = ['', 'root', 'password', 'password123', 'mysql'];
+  require('dotenv').config();
+  const passwords = [process.env.DB_PASSWORD, '0206', '', 'root', 'password', 'password123', 'mysql'].filter(Boolean);
   
   for (const password of passwords) {
     try {

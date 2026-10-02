@@ -125,8 +125,9 @@ async function verifyCashfreeOrder(req, res) {
     const payments = await response.json();
     if (Array.isArray(payments) && payments.length > 0) {
       const latest = payments[0];
+      const isSuccess = latest.payment_status === 'SUCCESS';
       return res.json({
-        success: true,
+        success: isSuccess,
         order_id,
         cf_payment_id: String(latest.cf_payment_id || `cf_pay_${Date.now()}`),
         payment_status: latest.payment_status || 'SUCCESS',
@@ -134,23 +135,33 @@ async function verifyCashfreeOrder(req, res) {
         payment_group: 'cashfree_upi',
         transaction_ref: `CF-UPI-${latest.cf_payment_id || Date.now().toString().slice(-8)}`,
         bank_reference: latest.bank_reference || `UPI/${Date.now().toString().slice(-10)}`,
-        payment_message: 'Payment verified with Cashfree Live Gateway'
+        payment_message: isSuccess ? 'Payment verified with Cashfree Live Gateway' : `Payment status: ${latest.payment_status}`
       });
     }
 
-    const cfPaymentId = `cf_pay_${Date.now()}`;
-    const txnRef = `CF-UPI-${Date.now().toString().slice(-8)}`;
+    // If order was created in TEST sandbox and awaiting customer scan
+    if (CASHFREE_ENV === 'TEST') {
+      const cfPaymentId = `cf_pay_${Date.now()}`;
+      const txnRef = `CF-UPI-${Date.now().toString().slice(-8)}`;
 
-    res.json({
-      success: true,
+      return res.json({
+        success: true,
+        order_id,
+        cf_payment_id: cfPaymentId,
+        payment_status: 'SUCCESS',
+        payment_method: 'UPI',
+        payment_group: 'cashfree_upi',
+        transaction_ref: txnRef,
+        bank_reference: `UPI/${Date.now().toString().slice(-10)}`,
+        payment_message: 'Payment simulated via Cashfree Test Sandbox'
+      });
+    }
+
+    return res.status(400).json({
+      success: false,
       order_id,
-      cf_payment_id: cfPaymentId,
-      payment_status: 'SUCCESS',
-      payment_method: 'UPI',
-      payment_group: 'cashfree_upi',
-      transaction_ref: txnRef,
-      bank_reference: `UPI/${Date.now().toString().slice(-10)}`,
-      payment_message: 'Payment recorded via Cashfree UPI Gateway'
+      payment_status: 'PENDING',
+      message: 'No completed payment recorded on Cashfree gateway yet'
     });
   } catch (err) {
     console.error('Cashfree verification error:', err);
@@ -158,4 +169,76 @@ async function verifyCashfreeOrder(req, res) {
   }
 }
 
-module.exports = { createCashfreeOrder, verifyCashfreeOrder };
+// Server-side verification helper for sales transactions
+async function verifyCashfreePaymentServerSide(order_id) {
+  if (!order_id || typeof order_id !== 'string') {
+    return { success: false, message: 'Cashfree order_id is required' };
+  }
+
+  try {
+    // 1. Fetch order details from Cashfree
+    const orderResponse = await fetch(`${CASHFREE_BASE_URL}/orders/${order_id}`, {
+      headers: {
+        'x-api-version': '2023-08-01',
+        'x-client-id': CASHFREE_APP_ID,
+        'x-client-secret': CASHFREE_SECRET_KEY
+      }
+    });
+
+    if (!orderResponse.ok) {
+      return { success: false, message: 'Order not found on Cashfree server' };
+    }
+
+    const orderData = await orderResponse.json();
+
+    // 2. Fetch payment transactions for this order
+    const payResponse = await fetch(`${CASHFREE_BASE_URL}/orders/${order_id}/payments`, {
+      headers: {
+        'x-api-version': '2023-08-01',
+        'x-client-id': CASHFREE_APP_ID,
+        'x-client-secret': CASHFREE_SECRET_KEY
+      }
+    });
+
+    const payments = await payResponse.json().catch(() => []);
+    if (Array.isArray(payments) && payments.length > 0) {
+      const successfulPayment = payments.find(p => p.payment_status === 'SUCCESS') || payments[0];
+      const isSuccess = successfulPayment.payment_status === 'SUCCESS';
+      return {
+        success: isSuccess,
+        order_id,
+        order_amount: Number(orderData.order_amount),
+        cf_payment_id: String(successfulPayment.cf_payment_id || `cf_pay_${Date.now()}`),
+        payment_status: successfulPayment.payment_status,
+        transaction_ref: `CF-UPI-${successfulPayment.cf_payment_id || order_id.slice(-8)}`,
+        message: isSuccess ? 'Payment verified with Cashfree' : `Payment status: ${successfulPayment.payment_status}`
+      };
+    }
+
+    // In TEST sandbox environment
+    if (CASHFREE_ENV === 'TEST' && orderData && orderData.order_id) {
+      return {
+        success: true,
+        order_id,
+        order_amount: Number(orderData.order_amount),
+        cf_payment_id: `cf_pay_${Date.now()}`,
+        payment_status: 'SUCCESS',
+        transaction_ref: `CF-UPI-${order_id.slice(-8)}`,
+        message: 'Simulated payment verified for Cashfree Test Sandbox'
+      };
+    }
+
+    return {
+      success: false,
+      order_id,
+      order_amount: Number(orderData.order_amount),
+      payment_status: 'PENDING',
+      message: 'No completed payment recorded on Cashfree gateway for this order'
+    };
+  } catch (err) {
+    console.error('Server-side Cashfree verification error:', err);
+    return { success: false, message: 'Cashfree verification communication error: ' + err.message };
+  }
+}
+
+module.exports = { createCashfreeOrder, verifyCashfreeOrder, verifyCashfreePaymentServerSide };

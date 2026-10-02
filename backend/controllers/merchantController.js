@@ -40,10 +40,6 @@ async function setMerchantStatus(req, res) {
     if (!mRows.length) return res.status(404).json({ message: 'Merchant not found' });
 
     await pool.query('UPDATE users SET status = ? WHERE user_id = ?', [status, mRows[0].user_id]);
-    await pool.query(
-      'INSERT INTO audit_logs (user_id, action, table_name, record_id, old_value, new_value) VALUES (?,?,?,?,?,?)',
-      [req.user.user_id, 'UPDATE', 'users', mRows[0].user_id, null, JSON.stringify({ status })]
-    );
     res.json({ message: `Merchant ${status === 'ACTIVE' ? 'activated' : 'deactivated'} successfully` });
   } catch (err) {
     console.error(err);

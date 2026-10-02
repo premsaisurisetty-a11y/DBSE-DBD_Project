@@ -207,15 +207,16 @@ export default function MerchantSales() {
         finalRef = cashTendered ? `Cash Tendered: ₹${cashTendered}` : undefined;
       }
 
+      const currentOrderId = activeOrder?.order_id || cashfreeOrder?.order_id;
       const payload = {
         items: items.map((it) => ({
           product_id: Number(it.product_id),
-          quantity: Number(it.quantity),
-          unit_price: Number(it.unit_price)
+          quantity: Number(it.quantity)
         })),
         tax: numTax,
         discount: numDiscount,
         payment_method: paymentMethod === 'UPI' ? 'UPI' : 'CASH',
+        order_id: paymentMethod === 'UPI' ? currentOrderId : undefined,
         transaction_ref: finalRef
       };
 

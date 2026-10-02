@@ -20,10 +20,6 @@ async function createProduct(req, res) {
       'INSERT INTO products (product_name, category, unit, selling_price) VALUES (?,?,?,?)',
       [product_name, category, unit, selling_price]
     );
-    await pool.query(
-      'INSERT INTO audit_logs (user_id, action, table_name, record_id, old_value, new_value) VALUES (?,?,?,?,?,?)',
-      [req.user.user_id, 'INSERT', 'products', result.insertId, null, JSON.stringify(req.body)]
-    );
     res.status(201).json({ message: 'Product created', product_id: result.insertId });
   } catch (err) {
     console.error(err);
@@ -41,10 +37,6 @@ async function updateProduct(req, res) {
       'UPDATE products SET product_name=?, category=?, unit=?, selling_price=?, status=? WHERE product_id=?',
       [product_name, category, unit, selling_price, status, req.params.id]
     );
-    await pool.query(
-      'INSERT INTO audit_logs (user_id, action, table_name, record_id, old_value, new_value) VALUES (?,?,?,?,?,?)',
-      [req.user.user_id, 'UPDATE', 'products', req.params.id, JSON.stringify(existing[0]), JSON.stringify(req.body)]
-    );
     res.json({ message: 'Product updated' });
   } catch (err) {
     console.error(err);
@@ -58,10 +50,6 @@ async function deleteProduct(req, res) {
     if (!existing.length) return res.status(404).json({ message: 'Product not found' });
 
     await pool.query('DELETE FROM products WHERE product_id = ?', [req.params.id]);
-    await pool.query(
-      'INSERT INTO audit_logs (user_id, action, table_name, record_id, old_value, new_value) VALUES (?,?,?,?,?,?)',
-      [req.user.user_id, 'DELETE', 'products', req.params.id, JSON.stringify(existing[0]), null]
-    );
     res.json({ message: 'Product deleted' });
   } catch (err) {
     console.error(err);
